@@ -1,0 +1,9 @@
+{
+  "name": "sensor-hub-bme68x-provider",
+  "build": {
+    "libArchive": false
+  },
+  "dependencies": {
+    "adafruit/Adafruit BME680 Library": "^2.0.6"
+  }
+}
