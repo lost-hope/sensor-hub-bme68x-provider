@@ -45,12 +45,14 @@ class BME68XSensorUsermod : public Usermod {
     uint16_t checkIntervalS = 30; // how often to read the sensor
     String namePrefix = "bme68x"; // sensor names become "<prefix>_temperature/_humidity/_pressure/_gas_resistance"
     uint8_t precision = 1;        // decimal places published for temperature/humidity/pressure
+    uint8_t priority = 100;       // getValue() selection priority - lower wins among sensors of the same SensorType (see sensor_bus.h)
 
     static const char _name[];
     static const char _enabled[];
     static const char _checkInterval[];
     static const char _namePrefix[];
     static const char _precision[];
+    static const char _priority[];
 
     bool beginSensor() {
       // BME68X breakout boards commonly strap the address to either 0x76 or 0x77.
@@ -65,10 +67,10 @@ class BME68XSensorUsermod : public Usermod {
 
     void registerSensors() {
       if (!hub || tempHandle != SENSOR_HANDLE_INVALID) return; // already registered
-      tempHandle     = hub->registerSensor((namePrefix + "_temperature").c_str(),  SensorType::Temperature, nullptr, nullptr, precision);
-      humidityHandle = hub->registerSensor((namePrefix + "_humidity").c_str(),     SensorType::Humidity,    nullptr, nullptr, precision);
-      pressureHandle = hub->registerSensor((namePrefix + "_pressure").c_str(),     SensorType::Pressure,    nullptr, nullptr, precision);
-      gasHandle      = hub->registerSensor((namePrefix + "_gas_resistance").c_str(), SensorType::Generic,    "ohm", nullptr, 0); // no standard HA device_class for raw gas resistance
+      tempHandle     = hub->registerSensor((namePrefix + "_temperature").c_str(),  SensorType::Temperature, nullptr, nullptr, precision, priority);
+      humidityHandle = hub->registerSensor((namePrefix + "_humidity").c_str(),     SensorType::Humidity,    nullptr, nullptr, precision, priority);
+      pressureHandle = hub->registerSensor((namePrefix + "_pressure").c_str(),     SensorType::Pressure,    nullptr, nullptr, precision, priority);
+      gasHandle      = hub->registerSensor((namePrefix + "_gas_resistance").c_str(), SensorType::Generic,    "ohm", nullptr, 0, priority); // no standard HA device_class for raw gas resistance
     }
 
     void setSensorsAvailable(bool available) {
@@ -130,6 +132,7 @@ class BME68XSensorUsermod : public Usermod {
       top[FPSTR(_checkInterval)] = checkIntervalS;
       top[FPSTR(_namePrefix)] = namePrefix;
       top[FPSTR(_precision)] = precision;
+      top[FPSTR(_priority)] = priority;
     }
 
     bool readFromConfig(JsonObject& root) override {
@@ -139,6 +142,7 @@ class BME68XSensorUsermod : public Usermod {
       configComplete &= getJsonValue(top[FPSTR(_checkInterval)], checkIntervalS);
       configComplete &= getJsonValue(top[FPSTR(_namePrefix)], namePrefix);
       configComplete &= getJsonValue(top[FPSTR(_precision)], precision);
+      configComplete &= getJsonValue(top[FPSTR(_priority)], priority);
       return configComplete;
     }
 
@@ -146,6 +150,7 @@ class BME68XSensorUsermod : public Usermod {
       settingsScript.print(F("addInfo('BME68XSensor:checkInterval',1,'seconds between sensor reads');"));
       settingsScript.print(F("addInfo('BME68XSensor:namePrefix',1,'sensor names become &lt;prefix&gt;_temperature/_humidity/_pressure/_gas_resistance - must be unique across all sensor providers');"));
       settingsScript.print(F("addInfo('BME68XSensor:precision',1,'decimal places published for temperature/humidity/pressure');"));
+      settingsScript.print(F("addInfo('BME68XSensor:priority',1,'getValue() selection priority - lower wins if another provider also registers a Temperature/Humidity/Pressure sensor');"));
     }
 };
 
@@ -154,6 +159,7 @@ const char BME68XSensorUsermod::_enabled[]       PROGMEM = "enabled";
 const char BME68XSensorUsermod::_checkInterval[] PROGMEM = "checkInterval";
 const char BME68XSensorUsermod::_namePrefix[]    PROGMEM = "namePrefix";
 const char BME68XSensorUsermod::_precision[]     PROGMEM = "precision";
+const char BME68XSensorUsermod::_priority[]      PROGMEM = "priority";
 
 static BME68XSensorUsermod bme68x_sensor;
 REGISTER_USERMOD(bme68x_sensor);
