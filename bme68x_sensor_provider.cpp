@@ -24,6 +24,16 @@
  * are set, then use the shared Wire bus. It must NOT call Wire.begin()
  * itself.
  */
+
+// Raw gas resistance isn't one of the standard quantities - it's a custom
+// type local to this provider (see sensor_bus.h's "open set" doc comment).
+constexpr SensorTypeInfo GasResistanceType{"gas_resistance", "ohm", nullptr, false};
+
+REGISTER_SENSOR_SLOT(_slotTemp, "_temperature", SensorTypes::Temperature, 1, 100);
+REGISTER_SENSOR_SLOT(_slotHumidity, "_humidity", SensorTypes::Humidity, 1, 100);
+REGISTER_SENSOR_SLOT(_slotPressure, "_pressure", SensorTypes::Pressure, 1, 100);
+REGISTER_SENSOR_SLOT(_slotGas, "_gas_resistance", GasResistanceType, 0, 100);
+
 class BME68XSensorUsermod : public Usermod {
   private:
     Adafruit_BME680 bme;
@@ -67,10 +77,10 @@ class BME68XSensorUsermod : public Usermod {
 
     void registerSensors() {
       if (!hub || tempHandle != SENSOR_HANDLE_INVALID) return; // already registered
-      tempHandle     = hub->registerSensor((namePrefix + "_temperature").c_str(),  SensorType::Temperature, nullptr, nullptr, precision, priority);
-      humidityHandle = hub->registerSensor((namePrefix + "_humidity").c_str(),     SensorType::Humidity,    nullptr, nullptr, precision, priority);
-      pressureHandle = hub->registerSensor((namePrefix + "_pressure").c_str(),     SensorType::Pressure,    nullptr, nullptr, precision, priority);
-      gasHandle      = hub->registerSensor((namePrefix + "_gas_resistance").c_str(), SensorType::Generic,    "ohm", nullptr, 0, priority); // no standard HA device_class for raw gas resistance
+      tempHandle     = hub->attachSensor(&_slotTemp, namePrefix.c_str(), precision, priority);
+      humidityHandle = hub->attachSensor(&_slotHumidity, namePrefix.c_str(), precision, priority);
+      pressureHandle = hub->attachSensor(&_slotPressure, namePrefix.c_str(), precision, priority);
+      gasHandle      = hub->attachSensor(&_slotGas, namePrefix.c_str(), 0, priority); // no standard HA device_class for raw gas resistance
     }
 
     void setSensorsAvailable(bool available) {
